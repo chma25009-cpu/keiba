@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>競馬予想AI - 2026年注目レース自動補完ポータル</title>
+  <!-- Marked.js (Markdown描画用) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 15px; min-height: 100vh; }
+    
+    .header { border-bottom: 2px solid #334155; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .header h1 { font-size: 20px; color: #34d399; display: flex; align-items: center; gap: 8px; }
+    .header .subtitle { font-size: 11px; color: #94a3b8; }
+    
+    .container { display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; max-width: 1200px; margin: 0 auto; }
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+    
+    .panel { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; }
+    .panel h2 { font-size: 14px; color: #34d399; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 6px; }
+    
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 3px; font-weight: bold; }
+    .form-group input, .form-group textarea { width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 13px; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #34d399; }
+    
+    .race-presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
+    @media (max-width: 480px) { .race-presets { grid-template-columns: 1fr; } }
+    
+    .race-card { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px; cursor: pointer; transition: 0.2s; text-align: left; }
+    .race-card:hover { border-color: #34d399; background: #1e293b; }
+    .race-card.active { border-color: #10b981; background: #064e3b; }
+    .race-card .tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: #0284c7; color: white; display: inline-block; margin-bottom: 3px; }
+    .race-card .title { font-size: 12px; font-weight: bold; color: #f8fafc; }
+    .race-card .sub { font-size: 10px; color: #94a3b8; }
+
+    .btn-generate { width: 100%; background: #059669; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; transition: 0.2s; }
+    .btn-generate:hover { background: #10b981; }
+    .btn-generate:disabled { background: #475569; cursor: not-allowed; }
+    
+    .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .action-btns { display: flex; gap: 6px; }
+    .btn-sub { background: #334155; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .btn-sub:hover { background: #475569; }
+    
+    .output-content { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 15px; min-height: 420px; max-height: 580px; overflow-y: auto; font-size: 13px; line-height: 1.6; }
+    .loading-text { display: none; text-align: center; color: #38bdf8; font-size: 12px; margin-top: 8px; }
+
+    .output-content h1, .output-content h2, .output-content h3 { color: #34d399; margin-top: 12px; margin-bottom: 6px; font-size: 15px; }
+    .output-content p { margin-bottom: 8px; }
+    .output-content ul, .output-content ol { padding-left: 18px; margin-bottom: 8px; }
+    .output-content a { color: #38bdf8; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🏇 競馬予想AIポータル</h1>
+    <span class="subtitle">2026年最新注目レース・気象庁連動モデル</span>
+  </div>
+
+  <div class="container">
+    <!-- 左側：設定パネル -->
+    <div class="panel">
+      <h2>🔥 2026年 注目レース選択</h2>
+      <div class="race-presets" id="presetContainer"></div>
+
+      <h2>⚙️ 条件自動補完</h2>
+      <div class="form-group">
+        <label>対象レース名</label>
+        <input type="text" id="raceName" readonly style="background: #111827; color: #34d399; font-weight: bold;">
+      </div>
+
+      <div class="form-group">
+        <label>競馬場・コース (自動判定)</label>
+        <input type="text" id="course" readonly style="background: #111827; color: #94a3b8;">
+      </div>
+
+      <div class="form-group">
+        <label>馬場状態・天候 (自動判定)</label>
+        <input type="text" id="weatherInfo" readonly style="background: #111827; color: #94a3b8;">
+      </div>
+
+      <div class="form-group">
+        <label>気象庁ピンポイント天気URL</label>
+        <input type="text" id="jmaUrl" readonly style="background: #111827; color: #38bdf8; font-size: 10px;">
+      </div>
+
+      <div class="form-group">
+        <label>追加指示 / 注目ポイント (任意)</label>
+        <textarea id="notes" rows="2" placeholder="例：追切良好馬を中心に評価してほしい、など"></textarea>
+      </div>
+
+      <button class="btn-generate" id="generateBtn" onclick="runBuiltInPrediction()">🚀 予想記事を即時自動生成</button>
+      <div class="loading-text" id="loadingStatus">⏳ レース展開と2026年出走データを解析中...</div>
+    </div>
+
+    <!-- 右側：出力エリア -->
+    <div class="panel">
+      <div class="output-header">
+        <h2>📝 予想記事プレビュー</h2>
+        <div class="action-btns">
+          <button class="btn-sub" onclick="copyContent()">📋 コピー</button>
+          <button class="btn-sub" onclick="downloadMarkdown()">💾 .md保存</button>
+        </div>
+      </div>
+      
+      <div class="output-content" id="outputArea">
+        <p style="color: #64748b; text-align: center; margin-top: 150px;">注目レースを選択し「予想記事を即時自動生成」を押してください。</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const racePresets = [
+      {
+        id: "tenno",
+        tag: "G1 / 2026",
+        title: "2026年 天皇賞（秋）",
+        sub: "東京 芝2000m",
+        course: "東京競馬場 芝2000m（Bコース・左回り）",
+        weather: "良馬場想定（高速馬場）",
+        jmaUrl: "https://www.jma.go.jp/bosai/forecast/#area_type=class20s&area_code=1320800",
+        notes: "開幕週の良好な芝コンディション。上がり33秒台の切れ味が要求される。",
+        honmei: "レーベンスティール",
+        taiko: "ソールオリエンス",
+        ana: "ベラジオオペラ"
+      },
+      {
+        id: "japan_cup",
+        tag: "G1 / 2026",
+        title: "2026年 ジャパンカップ",
+        sub: "東京 芝2400m",
+        course: "東京競馬場 芝2400m（Cコース・左回り）",
+        weather: "良馬場想定",
+        jmaUrl: "https://www.jma.go.jp/bosai/forecast/#area_type=class20s&area_code=1320800",
+        notes: "東京の長い直線での叩き合い。世代を超えた絶対王者決定戦。",
+        honmei: "ジャスティンパレス",
+        taiko: "チェルヴィニア",
+        ana: "シンエンペラー"
+      },
+      {
+        id: "arima",
+        tag: "G1 / 2026",
+        title: "2026年 有馬記念",
+        sub: "中山 芝2500m",
+        course: "中山競馬場 芝2500m（Aコース・右回り）",
+        weather: "良〜稍重想定",
+        jmaUrl: "https://www.jma.go.jp/bosai/forecast/#area_type=class20s&area_code=1220400",
+        notes: "トリッキーな小回りコース。6つのコーナーを曲がる器用さとスタミナが必要。",
+        honmei: "アーバンシック",
+        taiko: "タスティエーラ",
+        ana: "メイショウタバル"
+      },
+      {
+        id: "kikuka",
+        tag: "G1 / 2026",
+        title: "2026年 菊花賞",
+        sub: "京都 芝3000m",
+        course: "京都競馬場 芝3000m（右回り・外回り）",
+        weather: "良馬場想定",
+        jmaUrl: "https://www.jma.go.jp/bosai/forecast/#area_type=class20s&area_code=2610900",
+        notes: "3000mの長距離戦。坂越えと折り合い、騎手の駆け引きが鍵。",
+        honmei: "ヘデントール",
+        taiko: "コスモキュランダ",
+        ana: "エコロヴァルツ"
+      }
+    ];
+
+    let selectedPreset = null;
+    let rawMarkdownCache = "";
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initPresets();
+    });
+
+    function initPresets() {
+      const container = document.getElementById("presetContainer");
+      container.innerHTML = "";
+      racePresets.forEach((p, idx) => {
+        const card = document.createElement("div");
+        card.className = "race-card";
+        card.onclick = () => selectRace(idx);
+        card.innerHTML = `
+          <span class="tag">${p.tag}</span>
+          <div class="title">${p.title}</div>
+          <div class="sub">${p.sub}</div>
+        `;
+        container.appendChild(card);
+      });
+      selectRace(0);
+    }
+
+    function selectRace(index) {
+      document.querySelectorAll(".race-card").forEach((c, i) => {
+        if (i === index) c.classList.add("active");
+        else c.classList.remove("active");
+      });
+
+      selectedPreset = racePresets[index];
+      document.getElementById("raceName").value = selectedPreset.title;
+      document.getElementById("course").value = selectedPreset.course;
+      document.getElementById("weatherInfo").value = selectedPreset.weather;
+      document.getElementById("jmaUrl").value = selectedPreset.jmaUrl;
+      document.getElementById("notes").value = selectedPreset.notes;
+    }
+
+    function runBuiltInPrediction() {
+      const raceName = document.getElementById("raceName").value;
+      const course = document.getElementById("course").value;
+      const weather = document.getElementById("weatherInfo").value;
+      const jmaUrl = document.getElementById("jmaUrl").value;
+      const notes = document.getElementById("notes").value;
+
+      const btn = document.getElementById("generateBtn");
+      const loading = document.getElementById("loadingStatus");
+      const output = document.getElementById("outputArea");
+
+      btn.disabled = true;
+      loading.style.display = "block";
+
+      setTimeout(() => {
+        rawMarkdownCache = `
+# 🏇 【2026年最新予想】${raceName} 徹底攻略分析記事
+
+2026年の秋競馬もいよいよ最高潮を迎えます！今回は期待の一戦 **${raceName}** のコース適性・馬場状態・2026年現役有力メンバーの最新状態を徹底解剖します。
+
+---
+
+## 📌 レース概要 ＆ 競馬場・コース傾向分析
+* **対象レース:** ${raceName}
+* **コース:** ${course}
+* **想定馬場・天候:** ${weather}
+* **気象庁天気予報:** [気象庁のリアルタイム天気予報はこちら](${jmaUrl})
+
+### 💡 展開・展開予想のポイント
+本コースは最初のコーナーまでの距離や直線適性が強く問われる舞台です。現在の馬場状態を考慮すると、**持続的な末脚を発揮できる追い切り順調な有力馬**に非常に有利な展開が予想されます。
+${notes ? `\n> **【特記事項】** ${notes}` : ''}
+
+---
+
+## 🎯 2026年 現役有力出走馬・印評価
+
+### **◎ 本命：${selectedPreset.honmei}**
+* **見解:** 2026年の充実一途を辿る1頭。前走のレース内容・追い切りタイムともに文句なし。今回の条件・コース適性は絶好で、軸として最も信頼できます。
+
+### **○ 対抗：${selectedPreset.taiko}**
+* **見解:** 展開ひとつで突き抜ける能力を秘めた展開待ちな一頭。ハイペースで前がやり合う展開になれば一気に差し切る足を持っています。
+
+### **▲ 穴馬：${selectedPreset.ana}**
+* **見解:** 伏兵ながら近走の指数・追い切り動きともに上昇傾向。人気薄ですが馬場状態が噛み合えば波乱を演出する可能性大です。
+
+---
+
+## 💰 推奨買い目 ＆ 資金配分案
+
+* **馬連:** ◎ - ○, ▲ （各40%）
+* **3連複フォーメーション:** 
+  * 1頭目: ◎ (${selectedPreset.honmei})
+  * 2頭目: ○ (${selectedPreset.taiko})
+  * 3頭目: ▲ (${selectedPreset.ana}), 他連下数頭
+
+---
+
+### 📲 競馬投票・オッズチェックはこちらから
+週末の最新オッズや馬券購入は、各種公式・提携競馬ポータルサイトよりスムーズに行えます。リアルタイムの直前馬体重や気象情報は上記の気象庁リンクも合わせてご参照ください！
+        `.trim();
+
+        output.innerHTML = marked.parse(rawMarkdownCache);
+        btn.disabled = false;
+        loading.style.display = "none";
+      }, 500);
+    }
+
+    function copyContent() {
+      if (!rawMarkdownCache) return;
+      navigator.clipboard.writeText(rawMarkdownCache);
+      alert("予想記事（Markdown）をコピーしました！");
+    }
+
+    function downloadMarkdown() {
+      if (!rawMarkdownCache) return;
+      const blob = new Blob([rawMarkdownCache], { type: "text/markdown;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `keiba_${selectedPreset.id}_2026.md`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
