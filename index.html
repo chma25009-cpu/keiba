@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HIDENOBU - Personal Site</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      background: #fafafa;
+      color: #111;
+    }
+
+    /* 上部固定ナビゲーションバー */
+    .navbar {
+      position: sticky;
+      top: 0;
+      background: #111;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      border-bottom: 1px solid #333;
+    }
+
+    .navbar .logo { font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+
+    .nav-links { display: flex; gap: 15px; }
+
+    .nav-links a {
+      color: #ccc;
+      text-decoration: none;
+      font-size: 12px;
+      transition: 0.2s;
+    }
+
+    .nav-links a:hover { color: #fff; text-decoration: underline; }
+
+    header {
+      background: #111;
+      color: white;
+      padding: 50px 20px;
+      text-align: center;
+    }
+
+    section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 50px 20px;
+    }
+
+    h2 {
+      border-left: 5px solid #111;
+      padding-left: 10px;
+    }
+
+    .timeline {
+      border-left: 2px solid #ccc;
+      padding-left: 20px;
+    }
+
+    .item { margin-bottom: 20px; }
+
+    .quiz-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 15px;
+      border: none;
+      background: #111;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: 0.2s;
+    }
+
+    button:hover { background: #333; }
+
+    .result {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="logo">HIDENOBU PORTAL</div>
+  <div class="nav-links">
+    <a href="#about">自己紹介</a>
+    <a href="#career">経歴</a>
+    <a href="#quiz">クイズ</a>
+    <a href="#game">UFOキャッチャー</a>
+    <!-- 独立した競馬ポータルへジャンプ（別タブ表示） -->
+    <a href="keibasite.html" target="_blank" style="color: #34d399; font-weight: bold;">🏇 競馬予想AI ↗</a>
+  </div>
+</div>
+
+<header>
+  <img src="image/顔.png" alt="宣材写真" style="width:120px;height:120px;object-fit:cover;border-radius:50%;margin-bottom:20px;" />
+  <h1>HIDENOBU</h1>
+  <p>孤高の男</p>
+</header>
+
+<section id="about">
+  <h2>自己紹介</h2>
+  <p>毎日がeveryday</p>
+</section>
+
+<section id="career">
+  <h2>経歴</h2>
+  <div class="timeline">
+    <div class="item">2024 - フリーダムフォレスト 入学</div>
+    <div class="item">2025 - アルバイト 開始</div>
+    <div class="item">2026 - 第一種自動車運転免許 取得</div>
+  </div>
+</section>
+
+<section id="quiz">
+  <h2>付録クイズ</h2>
+  <div class="quiz-box">
+    <p>Q. HIDENOBUが好きな女性アニメキャラは？</p>
+    <button onclick="checkAnswer('a')">A. 綱手（NARUTO）</button>
+    <button onclick="checkAnswer('b')">B. レム</button>
+    <button onclick="checkAnswer('c')">C. マキマ</button>
+    <div class="result" id="result"></div>
+  </div>
+</section>
+
+<section id="game">
+  <h2>UFOキャッチャーゲーム</h2>
+  <canvas id="gameCanvas" width="300" height="300" style="border:1px solid #ccc; background:#fff; display:block; margin:0 auto;"></canvas>
+  <p style="text-align:center; margin-top:10px;">タップ / クリックで掴む・離す</p>
+</section>
+
+<script>
+  function checkAnswer(ans) {
+    const result = document.getElementById('result');
+    if(ans === 'a') {
+      result.textContent = '正解！';
+      result.style.color = 'green';
+    } else {
+      result.textContent = '不正解。もう一度考えてみよう。';
+      result.style.color = 'red';
+    }
+  }
+
+  // クレーンゲーム
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  let tx = 150, ty = 150, held = null, score = 0;
+  const basket = {x: 250, y: 250, r: 25};
+  let prizes = [];
+  for (let i = 0; i < 10; i++) {
+    prizes.push({ x: Math.random() * 260 + 20, y: Math.random() * 260 + 20, state: "free" });
+  }
+  function move(e) {
+    const rect = canvas.getBoundingClientRect();
+    tx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    ty = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  }
+  canvas.addEventListener("mousemove", move);
+  canvas.addEventListener("touchmove", move);
+  canvas.addEventListener("mousedown", grabOrRelease);
+  canvas.addEventListener("touchstart", grabOrRelease);
+  function grabOrRelease() {
+    if (held === null) {
+      for (let i = 0; i < prizes.length; i++) {
+        let p = prizes[i];
+        if (p.state === "free" && Math.hypot(tx - p.x, ty - p.y) < 20) {
+          p.state = "held"; held = i; break;
+        }
+      }
+    } else {
+      prizes[held].state = "free"; held = null;
+    }
+  }
+  function draw() {
+    ctx.clearRect(0, 0, 300, 300);
+    ctx.beginPath(); ctx.arc(basket.x, basket.y, basket.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillText("SCORE: " + score, 10, 20);
+    ctx.fillRect(tx - 5, ty - 5, 10, 10);
+    prizes.forEach(p => {
+      if (p.state === "held") {
+        p.x = tx; p.y = ty;
+        if (Math.hypot(p.x - basket.x, p.y - basket.y) < basket.r) {
+          p.state = "delivered"; held = null; score++;
+          prizes.push({ x: Math.random() * 260 + 20, y: Math.random() * 260 + 20, state: "free" });
+        }
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = p.state === "delivered" ? "gray" : "black";
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+</script>
+</body>
+</html>
